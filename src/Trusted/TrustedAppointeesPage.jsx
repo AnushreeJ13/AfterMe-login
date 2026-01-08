@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './TrustedAppointeesPage.css';
+const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
 const TrustedAppointeesPage = () => {
   const [expandedFolders, setExpandedFolders] = useState({});
@@ -135,7 +136,7 @@ const TrustedAppointeesPage = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch('/api/docs', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/api/docs`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(list => {
         const grouped = {};
@@ -236,7 +237,7 @@ const TrustedAppointeesPage = () => {
 
     const token = localStorage.getItem('token');
 
-    fetch('/api/docs/upload', {
+    fetch(`${API}/api/docs/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: fd

@@ -18,6 +18,7 @@ import Legal from './Manage/Legal';
 import Trusts from './Manage/Trusts';
 import BankAccounts from './Manage/BankAccounts'; // 👈 Add this import
 import './App.css';
+const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -29,7 +30,7 @@ function App() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
         if (!res.ok) throw new Error('Not authenticated');
         return res.json();

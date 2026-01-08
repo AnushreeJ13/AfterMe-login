@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
 const Login = ({ onLogin }) => {
 	const [showIframe, setShowIframe] = useState(true);
@@ -40,7 +41,7 @@ const Login = ({ onLogin }) => {
 		e.preventDefault();
 		setError(null);
 		try {
-			const res = await fetch('/api/auth/login', {
+			const res = await fetch(`${API}/api/auth/login`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ email, password })

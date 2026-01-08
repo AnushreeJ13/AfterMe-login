@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Sidebar.css';
+const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
 const Sidebar = ({ user: propUser, onLogout }) => {
   const [user, setUser] = useState(propUser || {
@@ -17,7 +18,7 @@ const Sidebar = ({ user: propUser, onLogout }) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch('/api/auth/me', {
+    fetch(`${API}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {

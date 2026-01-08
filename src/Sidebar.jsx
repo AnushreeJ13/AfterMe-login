@@ -1,13 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './Sidebar.css';
 
-const Sidebar = () => {
+const Sidebar = ({ user: propUser, onLogout }) => {
+  const [user, setUser] = useState(propUser || {
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "Member",
+    profileCompletion: 0
+  });
+
+  useEffect(() => {
+    // If parent passed user, use it; otherwise try to fetch using stored token
+    if (propUser) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Unauthorized');
+        return res.json();
+      })
+      .then(data => setUser(data))
+      .catch(err => {
+        console.error(err);
+        localStorage.removeItem('token');
+      });
+  }, [propUser]);
+
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  const initials =
+    (user.firstName?.[0] || "").toUpperCase() +
+    (user.lastName?.[0] || "").toUpperCase();
+
   return (
     <aside className="sidebar">
       <div className="user-profile">
         <div className="profile-banner"></div>
         <div className="profile-avatar">
-          <div className="avatar large">GA</div>
+        <div className="avatar large">{initials}</div>
           <button className="edit-icon" aria-label="Edit profile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -15,15 +49,18 @@ const Sidebar = () => {
             </svg>
           </button>
         </div>
-        <h2 className="profile-name">Gauri Aggarwal</h2>
-        <p className="profile-email">gauriaggarwal0112@gmail.com</p>
-        <p className="profile-status">Logged in as: Member</p>
-        
+       <h2 className="profile-name">{fullName}</h2>
+      <p className="profile-email">{user.email}</p>
+
+        <p className="profile-status">
+          Logged in as: {user.role || "Member"}
+        </p>
+
         <div className="profile-completion">
           <div className="completion-bar">
-            <div className="completion-fill" style={{width: '33%'}}></div>
+            <div className="completion-fill" style={{width: `${user.profileCompletion || 0}%`}}></div>
           </div>
-          <span className="completion-text">33%</span>
+          <span className="completion-text">{user.profileCompletion || 0}%</span>
         </div>
       </div>
 
@@ -61,6 +98,22 @@ const Sidebar = () => {
         </div>
 
         <button className="manage-plan-btn">Manage my Plan</button>
+      </div>
+
+      <div style={{padding: '12px 16px'}}>
+        <button
+          onClick={() => {
+            if (onLogout) onLogout();
+            else {
+              localStorage.removeItem('token');
+              window.location.reload();
+            }
+          }}
+          className="managebtn"
+          style={{border:'none', color:'#fff'}}
+        >
+          Logout
+        </button>
       </div>
 
       <div className="sidebar-section">

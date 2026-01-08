@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Dashboard from './Dashboard';
@@ -21,6 +21,7 @@ import './App.css';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [user, setUser] = useState(null);
 
   const handleNavigateToCategory = (categoryId) => {
     setSelectedCategory(categoryId);
@@ -117,7 +118,7 @@ function App() {
         <Header activeTab={activeTab} onTabChange={handleTabChange} />
 
         <div className="app-body">
-          <Sidebar />
+          <Sidebar user={user} onLogout={handleLogout} />
           <main className="main-content">
             {renderContent()}
           </main>

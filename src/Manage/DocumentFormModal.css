@@ -503,3 +503,150 @@
     padding: 2rem 1rem;
   }
 }
+
+
+
+
+
+.form-error {
+  color: #c53030;
+  padding: 0.5rem 2rem;
+  margin-top: 0.5rem;
+  background-color: #fff5f5;
+  border-radius: 4px;
+  border-left: 4px solid #c53030;
+}
+
+.existing-documents-section {
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.document-item:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.document-icon {
+  width: 40px;
+  height: 40px;
+  margin-right: 1rem;
+  color: #4a5568;
+}
+
+.document-info {
+  flex: 1;
+}
+
+.document-name {
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.25rem;
+}
+
+.document-description {
+  color: #718096;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.document-date, .document-files-count {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.document-delete {
+  background: none;
+  border: none;
+  color: #e53e3e;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.document-delete:hover:not(:disabled) {
+  background-color: #fed7d7;
+}
+
+.document-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.no-documents-message {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #718096;
+}
+
+.no-documents-message svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1rem;
+  color: #cbd5e1;
+}
+
+.subtext {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  color: #a0aec0;
+}
+
+.upload-hint {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-top: 0.5rem;
+}
+
+.details-section {
+  padding: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.form-input, .form-textarea, .form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}

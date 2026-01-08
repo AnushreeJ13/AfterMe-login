@@ -1,20 +1,20 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
 
-// Resolve .env relative to this file so starting the server
-// from a different CWD (e.g. project root) still loads variables.
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const envPath = resolve(__dirname, '../.env');
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const result = dotenv.config({ path: envPath });
-if (result.error) {
-	// Fall back to default lookup and log a helpful warning
-	const fallback = dotenv.config();
-	if (fallback.error) {
-		console.warn(`.env not found at ${envPath} and fallback lookup failed. ` +
-			'Make sure environment variables are set or start the server from the backend folder.');
-	}
-}
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+
+requiredEnvVars.forEach(varName => {
+  if (!process.env[varName]) {
+    console.error(`❌ Missing required environment variable: ${varName}`);
+    process.exit(1);
+  }
+});
+
+console.log('✅ Environment variables loaded');

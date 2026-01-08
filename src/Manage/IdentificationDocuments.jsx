@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './IdentificationDocuments.css';
 import DocumentFormModal from './DocumentFormModal';
+
+const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
 const IdentificationDocuments = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [documents, setDocuments] = useState([
+  // Static document definitions with MongoDB subitem mapping
+  const documentTypes = [
     {
       id: 'passport',
       title: 'Passport/ ID card',
+      subitem: 'Passport/ ID card',
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="18" y="12" width="28" height="40" rx="2" />
@@ -24,6 +30,7 @@ const IdentificationDocuments = () => {
     {
       id: 'drivers-license',
       title: "Driver's Licence",
+      subitem: "Driver's Licence",
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="14" y="20" width="36" height="24" rx="2" />
@@ -38,6 +45,7 @@ const IdentificationDocuments = () => {
     {
       id: 'birth-certificate',
       title: 'Birth Certificate',
+      subitem: 'Birth Certificate',
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="16" y="12" width="32" height="40" rx="2" />
@@ -53,6 +61,7 @@ const IdentificationDocuments = () => {
     {
       id: 'marriage-certificate',
       title: 'Marriage/civil union certificate',
+      subitem: 'Marriage/civil union certificate',
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="16" y="14" width="32" height="36" rx="2" />
@@ -66,6 +75,7 @@ const IdentificationDocuments = () => {
     {
       id: 'divorce-certificate',
       title: 'Divorce certificate',
+      subitem: 'Divorce certificate',
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="16" y="14" width="32" height="36" rx="2" />
@@ -80,6 +90,7 @@ const IdentificationDocuments = () => {
     {
       id: 'medical-records',
       title: 'Medical records',
+      subitem: 'Medical records',
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="18" y="12" width="28" height="40" rx="2" />
@@ -94,6 +105,7 @@ const IdentificationDocuments = () => {
     {
       id: 'miscellaneous',
       title: 'Miscellaneous',
+      subitem: 'Miscellaneous',
       icon: (
         <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="18" y="12" width="28" height="40" rx="2" />
@@ -105,21 +117,103 @@ const IdentificationDocuments = () => {
       ),
       count: 0
     }
-  ]);
+  ];
 
-  const handleSaveDocument = (docId) => {
-    setDocuments((prev) => prev.map(d => d.id === docId ? { ...d, count: (d.count || 0) + 1 } : d));
+  // Fetch document counts from MongoDB
+  const fetchDocumentCounts = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No token found');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/api/docs/counts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const counts = await response.json();
+      
+      // Create a map for quick lookup
+      const countsMap = {};
+      counts.forEach(c => {
+        const key = `${c._id.folder}|${c._id.subitem}`;
+        countsMap[key] = c.count;
+      });
+
+      // Update document types with counts
+      const updatedDocuments = documentTypes.map(doc => {
+        const key = `Identification & Documents|${doc.subitem}`;
+        return {
+          ...doc,
+          count: countsMap[key] || 0
+        };
+      });
+
+      setDocuments(updatedDocuments);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch document counts:', error);
+      // Fallback to default documents
+      setDocuments(documentTypes.map(doc => ({ ...doc, count: 0 })));
+      setIsLoading(false);
+    }
   };
 
-  const handleDocumentClick = (doc) => {
-    setSelectedDocument(doc);
+  // Fetch all documents for a specific type
+  const fetchDocumentsByType = async (subitem) => {
+    const token = localStorage.getItem('token');
+    if (!token) return [];
+
+    try {
+      const response = await fetch(`${API}/api/docs?folder=Identification & Documents&subitem=${encodeURIComponent(subitem)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      return data || [];
+    } catch (error) {
+      console.error('Failed to fetch documents:', error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    fetchDocumentCounts();
+  }, []);
+
+  const handleDocumentClick = async (doc) => {
+    // Fetch actual documents for this type
+    const documentsList = await fetchDocumentsByType(doc.subitem);
+    setSelectedDocument({
+      ...doc,
+      documentsList
+    });
     setShowModal(true);
+  };
+
+  const handleSaveDocument = async () => {
+    // Refresh counts after saving
+    await fetchDocumentCounts();
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedDocument(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="identification-documents-page">
+        <div className="page-header">
+          <h1 className="page-title">Legacy Assets Memories</h1>
+        </div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading documents...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="identification-documents-page">
@@ -144,7 +238,7 @@ const IdentificationDocuments = () => {
             </div>
             <h3 className="document-title">{doc.title}</h3>
             <div className="document-count">
-              <span className="count-badge">{doc.count} documents</span>
+              <span className="count-badge">{doc.count} {doc.count === 1 ? 'document' : 'documents'}</span>
             </div>
           </div>
         ))}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './TrustedAppointeesPage.css';
+
 const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 
 const TrustedAppointeesPage = () => {
@@ -9,6 +10,7 @@ const TrustedAppointeesPage = () => {
   const [currentFolder, setCurrentFolder] = useState('');
   const [currentSubitem, setCurrentSubitem] = useState('');
   const [formData, setFormData] = useState({});
+  const [documentCounts, setDocumentCounts] = useState({});
 
   // CONFIGURATION: Define questions for each subitem
   const formQuestions = {
@@ -34,7 +36,7 @@ const TrustedAppointeesPage = () => {
         { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'write your notes here...' },
         { name: 'firstName', label: 'First Name', type: 'text', placeholder: 'First Name' },
         { name: 'surname', label: 'Surname', type: 'text', placeholder: 'Surname' },
-         { name: 'expiryDate', label: 'Expiry Date', type: 'date', placeholder: 'dd/mm/yyyy' },
+        { name: 'expiryDate', label: 'Expiry Date', type: 'date', placeholder: 'dd/mm/yyyy' },
         { name: 'placeOfIssue', label: 'Place of Issue', type: 'text', placeholder: 'Place of Issue' },
         { name: 'licenceNumber', label: 'Licence Number', type: 'text', placeholder: 'Licence Number' }
       ],
@@ -59,7 +61,7 @@ const TrustedAppointeesPage = () => {
         { name: 'description', label: 'Give a short description', type: 'textarea', placeholder: 'write your description here...' }
       ]
     },
-     "Marriage/civil union certificate": {
+    "Marriage/civil union certificate": {
       step1: [
         { name: 'files', label: 'Files', type: 'file' },
         { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'write your notes here...' },
@@ -113,9 +115,7 @@ const TrustedAppointeesPage = () => {
         { name: 'documentName', label: 'Give this document a name! *', type: 'text', placeholder: 'write your response here...', required: true },
         { name: 'description', label: 'Give a short description', type: 'textarea', placeholder: 'write your description here...' }
       ]
-    },
-
-    // Add more subitems with their questions here
+    }
   };
 
   // Stored documents
@@ -131,12 +131,36 @@ const TrustedAppointeesPage = () => {
     }
   });
 
-  // load documents from backend for current user
+  // Fetch counts from MongoDB
+  const fetchCounts = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API}/api/docs/counts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const counts = await response.json();
+
+      const countsMap = {};
+      counts.forEach(c => {
+        const key = `${c._id.folder}|${c._id.subitem}`;
+        countsMap[key] = c.count;
+      });
+      setDocumentCounts(countsMap);
+    } catch (error) {
+      console.error('Failed to fetch counts:', error);
+    }
+  };
+
+  // Load documents from backend
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch(`${API}/api/docs`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/api/docs`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(res => res.json())
       .then(list => {
         const grouped = {};
@@ -148,6 +172,9 @@ const TrustedAppointeesPage = () => {
         setDocuments(prev => ({ ...prev, ...grouped }));
       })
       .catch(() => {});
+
+    // Fetch counts
+    fetchCounts();
   }, []);
 
   const folders = {
@@ -178,10 +205,7 @@ const TrustedAppointeesPage = () => {
   };
 
   const toggleFolder = (folderName) => {
-    setExpandedFolders(prev => ({
-      ...prev,
-      [folderName]: !prev[folderName]
-    }));
+    setExpandedFolders(prev => ({ ...prev, [folderName]: !prev[folderName] }));
   };
 
   const openAddModal = (folder, subitem) => {
@@ -220,14 +244,12 @@ const TrustedAppointeesPage = () => {
     }
   };
 
-  const handleSave = () => {
-    // Build FormData for files + metadata
+  const handleSave = async () => {
     const fd = new FormData();
     fd.append('folder', currentFolder);
     fd.append('subitem', currentSubitem);
     fd.append('metadata', JSON.stringify(formData));
 
-    // attach actual files from all file inputs in the modal
     const fileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
     fileInputs.forEach(input => {
       if (input.files && input.files.length > 0) {
@@ -236,55 +258,74 @@ const TrustedAppointeesPage = () => {
     });
 
     const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`${API}/api/docs/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd
+      });
+      
+      const result = await res.json();
+      
+      if (result && result.doc) {
+        setDocuments(prev => ({
+          ...prev,
+          [currentFolder]: {
+            ...prev[currentFolder],
+            [currentSubitem]: [...(prev[currentFolder]?.[currentSubitem] || []), result.doc]
+          }
+        }));
 
-    fetch(`${API}/api/docs/upload`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd
-    })
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.doc) {
-          setDocuments(prev => ({
-            ...prev,
-            [currentFolder]: {
-              ...prev[currentFolder],
-              [currentSubitem]: [...(prev[currentFolder]?.[currentSubitem] || []), result.doc]
-            }
-          }));
-        }
-      })
-      .catch(err => console.error(err));
+        // Refresh counts
+        await fetchCounts();
+      }
+    } catch (err) {
+      console.error(err);
+    }
 
     setShowModal(false);
     setModalStep(1);
     setFormData({});
   };
 
-  const handleDelete = (folder, subitem, docId) => {
-    setDocuments(prev => ({
-      ...prev,
-      [folder]: {
-        ...prev[folder],
-        [subitem]: prev[folder][subitem].filter(doc => doc.id !== docId)
-      }
-    }));
+  const handleDelete = async (folder, subitem, docId) => {
+    const token = localStorage.getItem('token');
+    
+    try {
+      await fetch(`${API}/api/docs/${docId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setDocuments(prev => ({
+        ...prev,
+        [folder]: {
+          ...prev[folder],
+          [subitem]: prev[folder][subitem].filter(doc => doc._id !== docId)
+        }
+      }));
+
+      // Refresh counts
+      await fetchCounts();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleFileChange = (name, event) => {
     const files = Array.from(event.target.files);
     const fileNames = files.map(f => f.name);
-    setFormData(prev => ({
-      ...prev,
-      [name]: [...(prev[name] || []), ...fileNames]
-    }));
+    setFormData(prev => ({ ...prev, [name]: [...(prev[name] || []), ...fileNames] }));
   };
 
   const removeFile = (name, index) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: prev[name].filter((_, i) => i !== index)
-    }));
+    setFormData(prev => ({ ...prev, [name]: prev[name].filter((_, i) => i !== index) }));
+  };
+
+  const getCount = (folder, subitem) => {
+    const key = `${folder}|${subitem}`;
+    return documentCounts[key] || 0;
   };
 
   const renderFormField = (question) => {
@@ -293,8 +334,7 @@ const TrustedAppointeesPage = () => {
     return (
       <div key={name} className="form-field">
         <label className="form-label">
-          {label}
-          {required && ' *'}
+          {label} {required && ' *'}
         </label>
         {type === 'file' && (
           <div>
@@ -317,11 +357,7 @@ const TrustedAppointeesPage = () => {
                       <polyline points="13 2 13 9 20 9"></polyline>
                     </svg>
                     <span className="file-name">{fileName}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(name, index)}
-                      className="remove-file-btn"
-                    >
+                    <button type="button" onClick={() => removeFile(name, index)} className="remove-file-btn">
                       ×
                     </button>
                   </div>
@@ -383,74 +419,84 @@ const TrustedAppointeesPage = () => {
         <h3 className="section-subtitle">Folder</h3>
 
         <div className="folders-list">
-          {Object.entries(folders).map(([folderName, subitems]) => (
-            <div key={folderName}>
-              <div
-                onClick={() => subitems.length > 0 && toggleFolder(folderName)}
-                className="folder-item"
-                style={{ cursor: subitems.length > 0 ? 'pointer' : 'default' }}
-              >
-                <svg className="folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {expandedFolders[folderName] ? (
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  ) : (
-                    <>
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
+          {Object.entries(folders).map(([folderName, subitems]) => {
+            const totalInFolder = subitems.reduce((sum, subitem) => sum + getCount(folderName, subitem), 0);
+            const completedCount = subitems.filter(subitem => getCount(folderName, subitem) > 0).length;
+
+            return (
+              <div key={folderName}>
+                <div
+                  onClick={() => subitems.length > 0 && toggleFolder(folderName)}
+                  className="folder-item"
+                  style={{ cursor: subitems.length > 0 ? 'pointer' : 'default' }}
+                >
+                  <svg className="folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    {expandedFolders[folderName] ? (
                       <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </>
-                  )}
-                </svg>
-                <span className="folder-name">{folderName}</span>
-              </div>
+                    ) : (
+                      <>
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </>
+                    )}
+                  </svg>
+                  <span className="folder-name">
+                    {folderName}
+                    {subitems.length > 0 && (
+                      <span className="folder-count"> ({completedCount}/{subitems.length})</span>
+                    )}
+                  </span>
+                </div>
 
-              {expandedFolders[folderName] && subitems.length > 0 && (
-                <div className="subitems-container">
-                  {subitems.map((subitem) => (
-                    <div key={subitem} className="subitem-section">
-                      <div className="subitem-header">
-                        <svg className="subitem-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        <span className="subitem-name">{subitem}</span>
-                      </div>
+                {expandedFolders[folderName] && subitems.length > 0 && (
+                  <div className="subitems-container">
+                    {subitems.map((subitem) => {
+                      const count = getCount(folderName, subitem);
+                      return (
+                        <div key={subitem} className="subitem-section">
+                          <div className="subitem-header">
+                            <svg className="subitem-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span className="subitem-name">
+                              {subitem}
+                              <span className="subitem-count"> ({count})</span>
+                            </span>
+                          </div>
 
-                      {documents[folderName]?.[subitem]?.map((doc, idx) => (
-                        <div key={doc._id || doc.id || `${folderName}-${subitem}-${idx}`} className="document-item">
-                          <svg className="document-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                          </svg>
-                          <span className="document-name">
-                            {doc.documentName || `${subitem} Document`}
-                          </span>
-                          <button
-                            onClick={() => handleDelete(folderName, subitem, doc.id)}
-                            className="delete-button"
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="3 6 5 6 21 6"></polyline>
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          {documents[folderName]?.[subitem]?.map((doc, idx) => (
+                            <div key={doc._id || doc.id || `${folderName}-${subitem}-${idx}`} className="document-item">
+                              <svg className="document-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                              </svg>
+                              <span className="document-name">
+                                {doc.documentName || `${subitem} Document`}
+                              </span>
+                              <button onClick={() => handleDelete(folderName, subitem, doc._id)} className="delete-button">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+
+                          <button onClick={() => openAddModal(folderName, subitem)} className="add-button">
+                            Add
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="12" y1="5" x2="12" y2="19"></line>
+                              <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                           </button>
                         </div>
-                      ))}
-
-                      <button
-                        onClick={() => openAddModal(folderName, subitem)}
-                        className="add-button"
-                      >
-                        Add
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <line x1="12" y1="5" x2="12" y2="19"></line>
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -461,25 +507,17 @@ const TrustedAppointeesPage = () => {
               <h3 className="modal-title">{currentSubitem}</h3>
               <button onClick={() => setShowModal(false)} className="modal-close">×</button>
             </div>
-
             <div className="modal-body">
               {getCurrentQuestions().map(question => renderFormField(question))}
             </div>
-
             <div className="modal-footer">
               {modalStep > 1 && (
-                <button onClick={handleBack} className="button-secondary">
-                  Back
-                </button>
+                <button onClick={handleBack} className="button-secondary">Back</button>
               )}
               {modalStep < getTotalSteps() ? (
-                <button onClick={handleNext} className="button-primary">
-                  Next
-                </button>
+                <button onClick={handleNext} className="button-primary">Next</button>
               ) : (
-                <button onClick={handleSave} className="button-primary">
-                  Save
-                </button>
+                <button onClick={handleSave} className="button-primary">Save</button>
               )}
             </div>
           </div>

@@ -19,6 +19,7 @@ import SocialDigital from './Manage/SocialDigital';
 import FuneralWishes from './Manage/FuneralWishes';
 import Trusts from './Manage/Trusts';
 import BankAccounts from './Manage/BankAccounts'; // 👈 Add this import
+import Valuable from './Manage/Valuable';
 import './App.css';
 import Charity from './Manage/Charity';
 const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
@@ -89,6 +90,7 @@ function App() {
           return <Financials onBack={handleBackToCategories} />;
 
         case 'valuable-possessions':
+            return <Valuable onBack={handleBackToCategories} />;
         case 'social-digital':
           return <SocialDigital onBack={handleBackToCategories} />;
         case 'funeral-wishes':

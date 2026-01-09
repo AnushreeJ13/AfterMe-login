@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './IdentificationDocuments.css';
 import DocumentFormModal from './DocumentFormModal';
 
-const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-
+const API = "https://dashboard-9qul.onrender.com";
 const IdentificationDocuments = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -129,9 +128,12 @@ const IdentificationDocuments = () => {
     }
 
     try {
-      const response = await fetch(`${API}/api/docs/counts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+     const response = await fetch(`${API}/api/docs/counts/summary`, {
+  headers: { 
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});
       const counts = await response.json();
       
       // Create a map for quick lookup
@@ -166,9 +168,15 @@ const IdentificationDocuments = () => {
     if (!token) return [];
 
     try {
-      const response = await fetch(`${API}/api/docs?folder=Identification & Documents&subitem=${encodeURIComponent(subitem)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await fetch(
+  `${API}/api/docs?folder=Identification%20%26%20Documents&subitem=${encodeURIComponent(subitem)}`,
+  {
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }
+);
       const data = await response.json();
       return data || [];
     } catch (error) {

@@ -7,9 +7,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Routes
-import documentRoutes from './routes/documents.routes.js';
+// Change the imports for routes
+import documentRoutes from './routes/doc.routes.js';
 import authRoutes from './routes/auth.routes.js';
-
 // Initialize express
 const app = express();
 
@@ -19,7 +19,12 @@ const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:5501",
+    "http://localhost:5000" ,
+     "*" // Add if needed
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -38,9 +43,8 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.use('/api/docs', documentRoutes);
-app.use('/api/auth', authRoutes);
-
+app.use("/api/auth", authRoutes);
+app.use("/api/docs", docRoutes);
 // For React Router - serve index.html for all unknown routes (in production)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));

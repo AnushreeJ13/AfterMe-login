@@ -9,7 +9,9 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "http://127.0.0.1:5501"
+    "http://127.0.0.1:5501",
+    "http://localhost:5000",
+     "*"  // Add if needed
   ],
   credentials: true
 }));
@@ -22,5 +24,4 @@ app.get('/api/ping', (req, res) => res.json({ ok: true, time: Date.now() }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/docs", docRoutes);
-
 export default app;

@@ -585,7 +585,72 @@ router.get('/counts/summary', verifyToken, async (req, res) => {
     });
   }
 });
+/* =========================
+   GET DOCUMENT COUNTS (Alias for /counts/summary)
+========================= */
+router.get('/counts', verifyToken, async (req, res) => {
+  try {
+    const counts = await Document.aggregate([
+      { 
+        $match: { 
+          user: mongoose.Types.ObjectId(req.user.id),
+          isDeleted: false 
+        } 
+      },
+      {
+        $group: {
+          _id: { folder: '$folder', subitem: '$subitem' },
+          count: { $sum: 1 },
+          totalSize: { $sum: { $sum: '$files.size' } }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.folder',
+          subitems: {
+            $push: {
+              subitem: '$_id.subitem',
+              count: '$count',
+              totalSize: '$totalSize'
+            }
+          },
+          totalCount: { $sum: '$count' },
+          folderTotalSize: { $sum: '$totalSize' }
+        }
+      },
+      {
+        $project: {
+          folder: '$_id',
+          subitems: 1,
+          totalCount: 1,
+          folderTotalSize: 1,
+          _id: 0
+        }
+      }
+    ]);
 
+    // Format for easy frontend consumption
+    const formattedCounts = {};
+    counts.forEach(folder => {
+      folder.subitems.forEach(subitem => {
+        const key = `${folder.folder}|${subitem.subitem}`;
+        formattedCounts[key] = subitem.count;
+      });
+    });
+
+    res.json({
+      success: true,
+      counts: formattedCounts,
+      folderStats: counts
+    });
+  } catch (error) {
+    console.error('Get counts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch document counts'
+    });
+  }
+});
 /* =========================
    GET FOLDER STATISTICS
 ========================= */

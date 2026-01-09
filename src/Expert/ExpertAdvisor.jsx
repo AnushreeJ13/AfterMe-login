@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ExpertAdvisor.css';
 
-const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-
+const API = "https://dashboard-9qul.onrender.com";
 const ExpertAdvisor = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [documentCounts, setDocumentCounts] = useState({});

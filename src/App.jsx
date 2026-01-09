@@ -20,6 +20,7 @@ import FuneralWishes from './Manage/FuneralWishes';
 import Trusts from './Manage/Trusts';
 import BankAccounts from './Manage/BankAccounts'; // 👈 Add this import
 import Valuable from './Manage/Valuable';
+import Entrepreneur from './Manage/Entrepreneur'; 
 import './App.css';
 import Charity from './Manage/Charity';
 const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
@@ -100,6 +101,8 @@ function App() {
         case 'charity':
           return <Charity onBack={handleBackToCategories} />;
 
+        case 'entrepreneur':
+          return <Entrepreneur onBack={handleBackToCategories} />;
         default:
           return (
             <div className="coming-soon">

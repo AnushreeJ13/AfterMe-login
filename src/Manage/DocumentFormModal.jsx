@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './DocumentFormModal.css';
 
-const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-
+const API = "https://dashboard-9qul.onrender.com";
 const DocumentFormModal = ({ document, onClose, onSave }) => {
   const [activeTab, setActiveTab] = useState('files');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -55,11 +54,15 @@ const DocumentFormModal = ({ document, onClose, onSave }) => {
 
     try {
       const response = await fetch(
-        `${API}/api/docs?folder=Identification & Documents&subitem=${encodeURIComponent(document.subitem)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+  `${API}/api/docs?folder=Identification%20%26%20Documents&subitem=${encodeURIComponent(document.subitem)}`,
+  {
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }
+);
+
       const data = await response.json();
       setExistingDocuments(data || []);
     } catch (error) {
@@ -178,23 +181,37 @@ const DocumentFormModal = ({ document, onClose, onSave }) => {
     });
 
     const token = localStorage.getItem('token');
-    if (!token) {
-      setFormError('Authentication required. Please login again.');
-      return;
-    }
+  if (!token) {
+    setFormError('Authentication required. Please login again.');
+    return;
+  }
+console.log('Uploading to:', `${API}/api/docs/upload`);
+  console.log('Token exists:', !!token);
+  console.log('Files to upload:', uploadedFiles.length);
+  
 
     setIsLoading(true);
 
     try {
       const response = await fetch(`${API}/api/docs/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataToSend
-      });
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+        // DO NOT set Content-Type for FormData!
+      },
+      body: formDataToSend
+    });
 
-      const result = await response.json();
+      console.log('Response status:', response.status);
+       if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload failed with status:', response.status);
+      console.error('Error response:', errorText);
+      throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    console.log('Upload result:', result);
 
       if (result.success) {
         console.log('Document saved successfully:', result.doc);
@@ -243,9 +260,9 @@ const DocumentFormModal = ({ document, onClose, onSave }) => {
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      setFormError('Upload failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    setFormError(`Upload failed: ${error.message}`);
+  } finally {
+    setIsLoading(false);
     }
   };
 

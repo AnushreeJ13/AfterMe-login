@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './TrustedAppointeesPage.css';
 
-const API = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
-
+const API = "https://dashboard-9qul.onrender.com";
 const TrustedAppointeesPage = () => {
   const [expandedFolders, setExpandedFolders] = useState({});
   const [showModal, setShowModal] = useState(false);
@@ -137,9 +136,9 @@ const TrustedAppointeesPage = () => {
     if (!token) return;
 
     try {
-      const response = await fetch(`${API}/api/docs/counts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await fetch(`${API}/docs/counts`, {
+  headers: { Authorization: `Bearer ${token}` }
+});
       const counts = await response.json();
 
       const countsMap = {};
@@ -158,9 +157,9 @@ const TrustedAppointeesPage = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch(`${API}/api/docs`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    fetch(`${API}/docs`, {
+  headers: { Authorization: `Bearer ${token}` }
+})
       .then(res => res.json())
       .then(list => {
         const grouped = {};
@@ -260,11 +259,11 @@ const TrustedAppointeesPage = () => {
     const token = localStorage.getItem('token');
     
     try {
-      const res = await fetch(`${API}/api/docs/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd
-      });
+      const res = await fetch(`${API}/docs/upload`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${token}` },
+  body: fd
+});
       
       const result = await res.json();
       

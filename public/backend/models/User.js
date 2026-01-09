@@ -19,7 +19,16 @@ const userSchema = new mongoose.Schema({
   profileCompletion: {
     type: Number,
     default: 0
-  }
+  },
+  // Add activityLog for document tracking
+  activityLog: [
+    {
+      action: String,
+      documentId: mongoose.Schema.Types.ObjectId,
+      documentName: String,
+      timestamp: { type: Date, default: Date.now }
+    }
+  ]
 });
 
 export default mongoose.model('User', userSchema);
